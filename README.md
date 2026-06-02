@@ -1,33 +1,73 @@
-# Football Squad Builder v12
+# Football Squad Builder v13
 
-This version removes MongoDB/Prisma and uses a local JSON file data store instead.
+This version uses **MongoDB Atlas + Prisma + Vercel API routes**.
 
-## New in v12
+It keeps the latest UI features:
 
-- Removed Prisma
-- Removed MongoDB connection
-- Backend stores squad data in `server/data/squad-state.json`
-- Added **Real name** input when adding a new player
-- Kept **Shirt size** combo box: `S, M, L, XL, 2XL, 3XL, 4XL, 5XL`
+- display name
+- real name
+- shirt number
+- shirt size: `S, M, L, XL, 2XL, 3XL, 4XL, 5XL`
+- role
+- captain
+- custom draggable formation
+- reserve bench
 
-## Setup
+## Important security note
+
+Do not put `MONGODB_URI` in frontend code. Add it only in `.env` locally and in Vercel Environment Variables.
+
+If you already pasted your real MongoDB password in chat or committed it somewhere, rotate/change that MongoDB Atlas password.
+
+## Local setup
 
 ```bash
 npm install
+```
+
+Create `.env`:
+
+```env
+MONGODB_URI="mongodb+srv://YOUR_USER:YOUR_PASSWORD@YOUR_CLUSTER/YOUR_DATABASE?retryWrites=true&w=majority"
+VITE_API_URL="http://localhost:4000"
+```
+
+Generate Prisma client:
+
+```bash
+npm run prisma:generate
+```
+
+Push Prisma model to MongoDB:
+
+```bash
+npm run prisma:push
+```
+
+Run locally:
+
+```bash
 npm run dev
 ```
 
-This starts:
+This runs:
 
-- Vite frontend: `http://localhost:5173`
-- Express API: `http://localhost:4000`
+- Vite frontend
+- Vercel API routes locally through `vercel dev --listen 4000`
 
-## Optional `.env`
+## Vercel deployment
+
+In Vercel Project Settings → Environment Variables, add:
 
 ```env
-PORT=4000
-DATA_FILE_PATH="./server/data/squad-state.json"
-VITE_API_URL="http://localhost:4000"
+MONGODB_URI="mongodb+srv://YOUR_USER:YOUR_PASSWORD@YOUR_CLUSTER/YOUR_DATABASE?retryWrites=true&w=majority"
+```
+
+For Vercel production, you normally do not need `VITE_API_URL`, because the frontend calls same-domain API routes:
+
+```txt
+/api/squads/latest
+/api/squads
 ```
 
 ## API routes
@@ -38,12 +78,15 @@ POST   /api/squads
 DELETE /api/squads
 ```
 
-## Stored data
+## About `lib/mongodb.ts`
 
-The backend writes the current squad state to:
+The project includes your requested Vercel MongoDB helper:
 
-```txt
-server/data/squad-state.json
+```ts
+import { MongoClient, type MongoClientOptions } from "mongodb";
+import { attachDatabasePool } from "@vercel/functions";
 ```
 
-The app still uses localStorage as a browser fallback if the backend is offline.
+That helper is useful for native MongoDB-driver endpoints.
+
+The current squad APIs use Prisma through `lib/prisma.ts`. Prisma does not use the native `MongoClient` instance directly.
