@@ -25,7 +25,8 @@ export function PlayerTable({ players, onUpdateRole, onToggleCaptain, onRemove }
                 <p className="font-bold text-slate-900">
                   {player.name} {player.isCaptain && <span className="text-amber-500">(C)</span>}
                 </p>
-                <p className="text-sm text-slate-500">#{player.shirtNumber}</p>
+                <p className="text-sm text-slate-500">{player.realName ?? player.name}</p>
+                <p className="text-xs text-slate-400">#{player.shirtNumber}</p>
               </div>
             </div>
 

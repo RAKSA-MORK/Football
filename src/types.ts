@@ -18,6 +18,7 @@ export type ShirtSize = "S" | "M" | "L" | "XL" | "2XL" | "3XL" | "4XL" | "5XL";
 export interface Player {
   id: string;
   name: string;
+  realName: string;
   shirtNumber: number;
   shirtSize: ShirtSize;
   role: Role;

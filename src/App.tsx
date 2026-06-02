@@ -6,10 +6,10 @@ import { FootballPitch } from "./FootballPitch";
 import { PlayerForm } from "./PlayerForm";
 import { PlayerTable } from "./PlayerTable";
 import { CustomFormationBuilder } from "./CustomFormationBuilder";
-import { fetchSavedSquad, saveSquad } from "./api";
+import { clearSavedSquadFile, fetchSavedSquad, saveSquad } from "./api";
 import type { Formation, FormationName, Player, Role, RoleSlot } from "./types";
 
-const STORAGE_KEY = "football-squad-builder-v10";
+const STORAGE_KEY = "football-squad-builder-v12";
 
 type SavedSquadState = {
   players: Player[];
@@ -54,7 +54,7 @@ export default function App() {
           setCustomFormation(remoteState.customFormation);
         }
       } catch (error) {
-        console.warn("MongoDB API is not available. Using localStorage fallback.", error);
+        console.warn("File-store API is not available. Using localStorage fallback.", error);
       } finally {
         hasLoadedRemoteData.current = true;
       }
@@ -76,7 +76,7 @@ export default function App() {
 
     const timer = window.setTimeout(() => {
       saveSquad(stateToSave).catch((error) => {
-        console.warn("Failed to save to MongoDB. localStorage fallback is still saved.", error);
+        console.warn("Failed to save to the JSON file. localStorage fallback is still saved.", error);
       });
     }, 500);
 
@@ -96,9 +96,9 @@ export default function App() {
     setCustomFormation(emptyState.customFormation);
 
     try {
-      await saveSquad(emptyState);
+      await clearSavedSquadFile();
     } catch (error) {
-      console.warn("Failed to clear MongoDB data. localStorage was cleared.", error);
+      console.warn("Failed to clear file-store data. localStorage was cleared.", error);
     }
   }
 
@@ -209,7 +209,7 @@ export default function App() {
             <div>
               <h1 className="text-3xl font-black md:text-5xl">Football Team Registration</h1>
               <p className="mt-2 max-w-2xl text-slate-300">
-                Your squad is saved to MongoDB through Prisma, with localStorage as a browser fallback.
+                Your squad is saved to a local JSON file through the backend, with localStorage as a browser fallback.
               </p>
             </div>
 

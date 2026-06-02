@@ -33,3 +33,15 @@ export async function saveSquad(payload: SquadStatePayload) {
 
   return response.json();
 }
+
+export async function clearSavedSquadFile() {
+  const response = await fetch(`${API_URL}/api/squads`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to clear squad");
+  }
+
+  return response.json();
+}

@@ -19,7 +19,8 @@ export async function exportPitchAsPng(node: HTMLElement | null) {
 export function exportPlayersAsExcel(players: Player[]) {
   const rows = players.map((player, index) => ({
     No: index + 1,
-    Name: player.name,
+    "Display Name": player.name,
+    "Real Name": player.realName ?? player.name,
     "Shirt Number": player.shirtNumber,
     "Shirt Size": player.shirtSize ?? "M",
     Role: player.role,

@@ -4,35 +4,28 @@
     "dev:client": "vite",
     "dev:server": "tsx server/index.ts",
     "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "prisma:studio": "prisma studio"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@prisma/client": "latest",
-    "@tailwindcss/vite": "latest",
     "@vitejs/plugin-react": "latest",
-    "cors": "latest",
-    "dotenv": "latest",
-    "express": "latest",
-    "html-to-image": "latest",
-    "lucide-react": "latest",
+    "vite": "latest",
+    "typescript": "latest",
     "react": "latest",
     "react-dom": "latest",
     "tailwindcss": "latest",
-    "typescript": "latest",
-    "vite": "latest",
-    "xlsx": "latest"
+    "@tailwindcss/vite": "latest",
+    "html-to-image": "latest",
+    "xlsx": "latest",
+    "lucide-react": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest"
   },
   "devDependencies": {
+    "concurrently": "latest",
+    "tsx": "latest",
     "@types/cors": "latest",
     "@types/express": "latest",
-    "@types/node": "latest",
-    "@types/react": "^19.2.16",
-    "@types/react-dom": "^19.2.3",
-    "concurrently": "latest",
-    "prisma": "latest",
-    "tsx": "latest"
+    "@types/node": "latest"
   }
 }

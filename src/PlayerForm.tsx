@@ -19,6 +19,7 @@ export function PlayerForm({ players, onAddPlayer }: PlayerFormProps) {
 
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("name") ?? "").trim();
+    const realName = String(formData.get("realName") ?? "").trim();
     const shirtNumberText = String(formData.get("shirtNumber") ?? "").trim();
     const requestedRole = String(formData.get("role") ?? "Reserve") as Role;
     const shirtSize = String(formData.get("shirtSize") ?? "M") as ShirtSize;
@@ -40,7 +41,7 @@ export function PlayerForm({ players, onAddPlayer }: PlayerFormProps) {
     }
 
     const shirtNumber = Number(shirtNumberText);
-    if (!Number.isInteger(shirtNumber) || shirtNumber < 1 || shirtNumber > 9999) {
+    if (!Number.isInteger(shirtNumber) || shirtNumber < 1 || shirtNumber > 99) {
       setError("Shirt number must be between 1 and 99.");
       return;
     }
@@ -50,7 +51,7 @@ export function PlayerForm({ players, onAddPlayer }: PlayerFormProps) {
       return;
     }
 
-    onAddPlayer({ name, shirtNumber, shirtSize, role, isCaptain });
+    onAddPlayer({ name, realName: realName || name, shirtNumber, shirtSize, role, isCaptain });
 
     if (role === "Reserve" && requestedRole !== "Reserve") {
       setError(`${requestedRole} already has a player, so ${name} was added as Reserve.`);
@@ -83,9 +84,19 @@ export function PlayerForm({ players, onAddPlayer }: PlayerFormProps) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-1 text-sm font-semibold text-slate-700">
-          Player name
+          Player display name
           <input
             name="name"
+            disabled={maxReached}
+            placeholder="e.g. Dara"
+            className="rounded-2xl border border-slate-200 px-4 py-3 outline-none ring-emerald-500 transition focus:ring-2 disabled:bg-slate-100"
+          />
+        </label>
+
+        <label className="grid gap-1 text-sm font-semibold text-slate-700">
+          Real name
+          <input
+            name="realName"
             disabled={maxReached}
             placeholder="e.g. Dara Sok"
             className="rounded-2xl border border-slate-200 px-4 py-3 outline-none ring-emerald-500 transition focus:ring-2 disabled:bg-slate-100"

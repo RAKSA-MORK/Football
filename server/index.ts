@@ -1,13 +1,28 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
-import { PrismaClient } from "@prisma/client";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 
-const prisma = new PrismaClient();
+type SquadState = {
+  players: unknown[];
+  formationName: string;
+  customFormation: unknown;
+  updatedAt?: string;
+};
+
 const app = express();
-
 const port = Number(process.env.PORT ?? 4000);
-const defaultKey = "default";
+
+const dataFilePath =
+  process.env.DATA_FILE_PATH ??
+  path.join(process.cwd(), "server", "data", "squad-state.json");
+
+const defaultState: SquadState = {
+  players: [],
+  formationName: "4-4-2",
+  customFormation: null,
+};
 
 app.use(cors({
   origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -16,32 +31,48 @@ app.use(cors({
 
 app.use(express.json({ limit: "2mb" }));
 
+async function ensureDataDirectory() {
+  await fs.mkdir(path.dirname(dataFilePath), { recursive: true });
+}
+
+async function readSquadState(): Promise<SquadState> {
+  try {
+    const raw = await fs.readFile(dataFilePath, "utf-8");
+    return JSON.parse(raw) as SquadState;
+  } catch (error: unknown) {
+    const code = (error as NodeJS.ErrnoException).code;
+
+    if (code === "ENOENT") {
+      return defaultState;
+    }
+
+    throw error;
+  }
+}
+
+async function writeSquadState(state: SquadState) {
+  await ensureDataDirectory();
+
+  const nextState: SquadState = {
+    ...state,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await fs.writeFile(dataFilePath, JSON.stringify(nextState, null, 2), "utf-8");
+  return nextState;
+}
+
 app.get("/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, dataFilePath });
 });
 
 app.get("/api/squads/latest", async (_req, res) => {
   try {
-    const squad = await prisma.squadState.findUnique({
-      where: { key: defaultKey },
-    });
-
-    if (!squad) {
-      return res.json({
-        players: [],
-        formationName: "4-4-2",
-        customFormation: null,
-      });
-    }
-
-    return res.json({
-      players: squad.players,
-      formationName: squad.formationName,
-      customFormation: squad.customFormation,
-    });
+    const squad = await readSquadState();
+    return res.json(squad);
   } catch (error) {
-    console.error("Failed to read squad:", error);
-    return res.status(500).json({ message: "Failed to read squad data." });
+    console.error("Failed to read squad file:", error);
+    return res.status(500).json({ message: "Failed to read squad data file." });
   }
 });
 
@@ -61,34 +92,30 @@ app.post("/api/squads", async (req, res) => {
       return res.status(400).json({ message: "customFormation is required." });
     }
 
-    const squad = await prisma.squadState.upsert({
-      where: { key: defaultKey },
-      update: {
-        players,
-        formationName,
-        customFormation,
-      },
-      create: {
-        key: defaultKey,
-        players,
-        formationName,
-        customFormation,
-      },
+    const saved = await writeSquadState({
+      players,
+      formationName,
+      customFormation,
     });
 
-    return res.json({
-      id: squad.id,
-      players: squad.players,
-      formationName: squad.formationName,
-      customFormation: squad.customFormation,
-      updatedAt: squad.updatedAt,
-    });
+    return res.json(saved);
   } catch (error) {
-    console.error("Failed to save squad:", error);
-    return res.status(500).json({ message: "Failed to save squad data." });
+    console.error("Failed to save squad file:", error);
+    return res.status(500).json({ message: "Failed to save squad data file." });
+  }
+});
+
+app.delete("/api/squads", async (_req, res) => {
+  try {
+    const saved = await writeSquadState(defaultState);
+    return res.json(saved);
+  } catch (error) {
+    console.error("Failed to clear squad file:", error);
+    return res.status(500).json({ message: "Failed to clear squad data file." });
   }
 });
 
 app.listen(port, () => {
   console.log(`API server running at http://localhost:${port}`);
+  console.log(`Squad data file: ${dataFilePath}`);
 });
