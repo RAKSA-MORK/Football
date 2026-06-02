@@ -33,7 +33,7 @@ export default function App() {
   const [players, setPlayers] = useState<Player[]>(savedState?.players ?? []);
   const [formationName, setFormationName] = useState<FormationName>(savedState?.formationName ?? "4-4-2");
   const [customFormation, setCustomFormation] = useState<Formation>(savedState?.customFormation ?? formations.Custom);
-  const [syncStatus, setSyncStatus] = useState<"checking" | "connected" | "local">("checking");
+  const [syncStatus, setSyncStatus] = useState<"checking" | "mongodb" | "server-file" | "local">("checking");
   const pitchRef = useRef<HTMLDivElement | null>(null);
 
   const hasLoadedRemoteData = useRef(false);
@@ -54,7 +54,7 @@ export default function App() {
         if (remoteState.customFormation) {
           setCustomFormation(remoteState.customFormation);
         }
-        setSyncStatus("connected");
+        setSyncStatus(remoteState.storage === "server-file-fallback" ? "server-file" : "mongodb");
       } catch (error) {
         setSyncStatus("local");
         console.warn("MongoDB API is not available. Using localStorage fallback.", error);
@@ -79,7 +79,7 @@ export default function App() {
 
     const timer = window.setTimeout(() => {
       saveSquad(stateToSave)
-        .then(() => setSyncStatus("connected"))
+        .then((saved) => setSyncStatus(saved.storage === "server-file-fallback" ? "server-file" : "mongodb"))
         .catch((error) => {
           setSyncStatus("local");
           console.warn("Failed to save to MongoDB. localStorage fallback is still saved.", error);
@@ -215,20 +215,24 @@ export default function App() {
             <div>
               <h1 className="text-3xl font-black md:text-5xl">Football Team Registration</h1>
               <p className="mt-2 max-w-2xl text-slate-300">
-                Your squad is saved to MongoDB through Vercel API routes, with localStorage as a browser fallback.
+                Your squad is saved to MongoDB; if MongoDB fails, the API uses a server file fallback before browser localStorage.
               </p>
               <div className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-black ${
-                syncStatus === "connected"
+                syncStatus === "mongodb"
                   ? "bg-emerald-400 text-slate-950"
-                  : syncStatus === "checking"
-                    ? "bg-amber-300 text-slate-950"
-                    : "bg-red-400 text-white"
+                  : syncStatus === "server-file"
+                    ? "bg-sky-300 text-slate-950"
+                    : syncStatus === "checking"
+                      ? "bg-amber-300 text-slate-950"
+                      : "bg-red-400 text-white"
               }`}>
-                {syncStatus === "connected"
+                {syncStatus === "mongodb"
                   ? "MongoDB connected"
-                  : syncStatus === "checking"
-                    ? "Checking database..."
-                    : "Using local browser storage only"}
+                  : syncStatus === "server-file"
+                    ? "Using server file fallback"
+                    : syncStatus === "checking"
+                      ? "Checking database..."
+                      : "Using local browser storage only"}
               </div>
             </div>
 

@@ -1,26 +1,56 @@
 import { MongoClient, type Db, type MongoClientOptions } from "mongodb";
 import { attachDatabasePool } from "@vercel/functions";
 
-const uri = process.env.MONGODB_URI;
+let cachedClient: MongoClient | null = null;
 
-if (!uri) {
-  throw new Error("Missing MONGODB_URI environment variable.");
+function cleanMongoUri(value: string | undefined) {
+  if (!value) return "";
+
+  // Sometimes env values are copied with quotes into dashboards.
+  // This removes surrounding single/double quotes only.
+  return value.trim().replace(/^['"]|['"]$/g, "");
 }
 
-const options: MongoClientOptions = {
-  appName: "football-squad-builder",
-  maxIdleTimeMS: 5000,
-};
+export function getMongoConfig() {
+  const uri = cleanMongoUri(process.env.MONGODB_URI);
+  const databaseName = process.env.MONGODB_DB || "football_squad_builder";
 
-const client = new MongoClient(uri, options);
+  return {
+    uri,
+    databaseName,
+    hasMongoUri: Boolean(uri),
+  };
+}
 
-// Attach the client to ensure proper cleanup on Vercel Function suspension.
-attachDatabasePool(client);
+export function getMongoClient() {
+  const { uri } = getMongoConfig();
 
-export default client;
+  if (!uri) {
+    throw new Error("Missing MONGODB_URI environment variable.");
+  }
+
+  if (cachedClient) {
+    return cachedClient;
+  }
+
+  const options: MongoClientOptions = {
+    appName: "football-squad-builder",
+    maxIdleTimeMS: 5000,
+  };
+
+  cachedClient = new MongoClient(uri, options);
+
+  try {
+    attachDatabasePool(cachedClient);
+  } catch (error) {
+    // Keep API alive even if this helper is unavailable in local/dev runtime.
+    console.warn("attachDatabasePool failed; continuing with cached MongoClient.", error);
+  }
+
+  return cachedClient;
+}
 
 export function getDatabase(): Db {
-  // Your pasted URI has no database path after mongodb.net/.
-  // Native MongoDB can still work if we explicitly choose a database name here.
-  return client.db(process.env.MONGODB_DB || "football_squad_builder");
+  const { databaseName } = getMongoConfig();
+  return getMongoClient().db(databaseName);
 }

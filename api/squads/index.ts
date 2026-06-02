@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getDatabase } from "../../lib/mongodb";
+import { getDatabase, getMongoConfig } from "../../lib/mongodb";
+import { clearServerFileStore, writeServerFileStore } from "../../lib/serverFileStore";
 
 const DEFAULT_KEY = "default";
 
@@ -26,23 +27,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 async function saveSquad(req: VercelRequest, res: VercelResponse) {
+  const config = getMongoConfig();
+
+  const { players, formationName, customFormation } = req.body ?? {};
+
+  if (!Array.isArray(players)) {
+    return res.status(400).json({ message: "players must be an array." });
+  }
+
+  if (typeof formationName !== "string") {
+    return res.status(400).json({ message: "formationName must be a string." });
+  }
+
+  if (!customFormation || typeof customFormation !== "object") {
+    return res.status(400).json({ message: "customFormation is required." });
+  }
+
+  const nextState = {
+    players,
+    formationName,
+    customFormation,
+  };
+
   try {
-    const { players, formationName, customFormation } = req.body ?? {};
-
-    if (!Array.isArray(players)) {
-      return res.status(400).json({ message: "players must be an array." });
-    }
-
-    if (typeof formationName !== "string") {
-      return res.status(400).json({ message: "formationName must be a string." });
-    }
-
-    if (!customFormation || typeof customFormation !== "object") {
-      return res.status(400).json({ message: "customFormation is required." });
+    if (!config.hasMongoUri) {
+      const fallback = await writeServerFileStore(nextState);
+      return res.status(200).json({
+        ...fallback,
+        warning: "MongoDB URI is missing. Saved to server file fallback.",
+      });
     }
 
     const db = getDatabase();
-    const nextState = {
+
+    const mongoState = {
       key: DEFAULT_KEY,
       players,
       formationName,
@@ -52,44 +70,72 @@ async function saveSquad(req: VercelRequest, res: VercelResponse) {
 
     await db.collection("squad_states").updateOne(
       { key: DEFAULT_KEY },
-      { $set: nextState, $setOnInsert: { createdAt: new Date().toISOString() } },
+      { $set: mongoState, $setOnInsert: { createdAt: new Date().toISOString() } },
       { upsert: true }
     );
 
-    return res.status(200).json(nextState);
+    return res.status(200).json({
+      ...mongoState,
+      storage: "mongodb",
+    });
   } catch (error) {
-    console.error("Failed to save squad:", error);
-    return res.status(500).json({
-      message: "Failed to save squad data.",
-      error: error instanceof Error ? error.message : String(error),
+    console.error("MongoDB save failed. Falling back to server file store:", error);
+
+    const fallback = await writeServerFileStore(nextState);
+
+    return res.status(200).json({
+      ...fallback,
+      warning: "MongoDB save failed. Saved to server file fallback.",
+      mongoError: error instanceof Error ? error.message : String(error),
     });
   }
 }
 
 async function clearSquad(res: VercelResponse) {
+  const config = getMongoConfig();
+
+  const emptyState = {
+    players: [],
+    formationName: "4-4-2",
+    customFormation: defaultCustomFormation,
+  };
+
   try {
+    if (!config.hasMongoUri) {
+      const fallback = await clearServerFileStore();
+      return res.status(200).json({
+        ...fallback,
+        warning: "MongoDB URI is missing. Cleared server file fallback.",
+      });
+    }
+
     const db = getDatabase();
 
-    const emptyState = {
+    const mongoState = {
       key: DEFAULT_KEY,
-      players: [],
-      formationName: "4-4-2",
-      customFormation: defaultCustomFormation,
+      ...emptyState,
       updatedAt: new Date().toISOString(),
     };
 
     await db.collection("squad_states").updateOne(
       { key: DEFAULT_KEY },
-      { $set: emptyState, $setOnInsert: { createdAt: new Date().toISOString() } },
+      { $set: mongoState, $setOnInsert: { createdAt: new Date().toISOString() } },
       { upsert: true }
     );
 
-    return res.status(200).json(emptyState);
+    return res.status(200).json({
+      ...mongoState,
+      storage: "mongodb",
+    });
   } catch (error) {
-    console.error("Failed to clear squad:", error);
-    return res.status(500).json({
-      message: "Failed to clear squad data.",
-      error: error instanceof Error ? error.message : String(error),
+    console.error("MongoDB clear failed. Falling back to server file store:", error);
+
+    const fallback = await clearServerFileStore();
+
+    return res.status(200).json({
+      ...fallback,
+      warning: "MongoDB clear failed. Cleared server file fallback.",
+      mongoError: error instanceof Error ? error.message : String(error),
     });
   }
 }

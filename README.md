@@ -1,81 +1,73 @@
-# Football Squad Builder v18
+# Football Squad Builder v20
 
-This version removes Prisma from the production path and uses the native MongoDB driver with Vercel API routes.
+This version adds a server-side file fallback.
 
-Why: your deployed function crashed at `/api/squads/latest`. The Prisma v6/v7 MongoDB setup was causing deployment/runtime issues. This version uses your requested Vercel MongoDB pattern:
-
-```ts
-import { MongoClient, type MongoClientOptions } from "mongodb";
-import { attachDatabasePool } from "@vercel/functions";
-```
-
-## Environment variables in Vercel
-
-Set:
-
-```env
-MONGODB_URI="mongodb+srv://YOUR_USER:YOUR_PASSWORD@YOUR_CLUSTER/?retryWrites=true&w=majority"
-MONGODB_DB="football_squad_builder"
-```
-
-Do not set this in Vercel production:
-
-```env
-VITE_API_URL=http://localhost:4000
-```
-
-The production frontend automatically calls same-domain API routes.
-
-## API routes
+Storage priority:
 
 ```txt
-GET    /api/health
-GET    /api/squads/latest
-POST   /api/squads
-DELETE /api/squads
+1. MongoDB
+2. Server file fallback
+3. Browser localStorage fallback
 ```
 
-## Test after deployment
+## Important Vercel note
+
+On Vercel, the server file fallback writes to `/tmp`. This can help avoid browser-only localStorage, but it is not a permanent database. It may reset when the serverless function instance is recycled.
+
+For real shared permanent data, MongoDB still needs to work.
+
+## API behavior
+
+If MongoDB works:
+
+```json
+{ "storage": "mongodb" }
+```
+
+If MongoDB fails:
+
+```json
+{ "storage": "server-file-fallback", "warning": "MongoDB save failed..." }
+```
+
+## Test after deploy
 
 Open:
 
 ```txt
-https://your-app.vercel.app/api/health
+https://football-omega-one.vercel.app/api/health
 ```
 
-Expected:
+It should no longer crash. It should return either:
 
 ```json
 {
-  "ok": true,
-  "database": "football_squad_builder",
-  "hasMongoUri": true
+  "mongodb": true,
+  "fileFallback": false
 }
 ```
 
-Then open:
+or:
 
-```txt
-https://your-app.vercel.app/api/squads/latest
+```json
+{
+  "mongodb": false,
+  "fileFallback": true,
+  "mongoError": "..."
+}
 ```
 
-Expected JSON squad data.
+## Vercel env
 
-## Local setup
-
-```bash
-npm install
-npm run dev
-```
-
-For local `.env`:
+For MongoDB, set:
 
 ```env
-MONGODB_URI="mongodb+srv://YOUR_USER:YOUR_PASSWORD@YOUR_CLUSTER/?retryWrites=true&w=majority"
-MONGODB_DB="football_squad_builder"
-VITE_API_URL="http://localhost:4000"
+MONGODB_URI=mongodb+srv://YOUR_USER:YOUR_PASSWORD@YOUR_CLUSTER/?retryWrites=true&w=majority
+MONGODB_DB=football_squad_builder
 ```
 
-## Security note
+Remove this in production:
 
-If you pasted your real MongoDB password into chat or committed it, rotate/change it in MongoDB Atlas.
+```env
+VITE_API_URL=http://localhost:4000
+```
