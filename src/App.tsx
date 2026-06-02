@@ -33,6 +33,7 @@ export default function App() {
   const [players, setPlayers] = useState<Player[]>(savedState?.players ?? []);
   const [formationName, setFormationName] = useState<FormationName>(savedState?.formationName ?? "4-4-2");
   const [customFormation, setCustomFormation] = useState<Formation>(savedState?.customFormation ?? formations.Custom);
+  const [syncStatus, setSyncStatus] = useState<"checking" | "connected" | "local">("checking");
   const pitchRef = useRef<HTMLDivElement | null>(null);
 
   const hasLoadedRemoteData = useRef(false);
@@ -53,7 +54,9 @@ export default function App() {
         if (remoteState.customFormation) {
           setCustomFormation(remoteState.customFormation);
         }
+        setSyncStatus("connected");
       } catch (error) {
+        setSyncStatus("local");
         console.warn("MongoDB API is not available. Using localStorage fallback.", error);
       } finally {
         hasLoadedRemoteData.current = true;
@@ -75,9 +78,12 @@ export default function App() {
     if (!hasLoadedRemoteData.current) return;
 
     const timer = window.setTimeout(() => {
-      saveSquad(stateToSave).catch((error) => {
-        console.warn("Failed to save to MongoDB. localStorage fallback is still saved.", error);
-      });
+      saveSquad(stateToSave)
+        .then(() => setSyncStatus("connected"))
+        .catch((error) => {
+          setSyncStatus("local");
+          console.warn("Failed to save to MongoDB. localStorage fallback is still saved.", error);
+        });
     }, 500);
 
     return () => window.clearTimeout(timer);
@@ -211,6 +217,19 @@ export default function App() {
               <p className="mt-2 max-w-2xl text-slate-300">
                 Your squad is saved to MongoDB through Vercel API routes, with localStorage as a browser fallback.
               </p>
+              <div className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-black ${
+                syncStatus === "connected"
+                  ? "bg-emerald-400 text-slate-950"
+                  : syncStatus === "checking"
+                    ? "bg-amber-300 text-slate-950"
+                    : "bg-red-400 text-white"
+              }`}>
+                {syncStatus === "connected"
+                  ? "MongoDB connected"
+                  : syncStatus === "checking"
+                    ? "Checking database..."
+                    : "Using local browser storage only"}
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-3">

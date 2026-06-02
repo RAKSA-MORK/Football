@@ -1,92 +1,81 @@
-# Football Squad Builder v13
+# Football Squad Builder v18
 
-This version uses **MongoDB Atlas + Prisma + Vercel API routes**.
+This version removes Prisma from the production path and uses the native MongoDB driver with Vercel API routes.
 
-It keeps the latest UI features:
-
-- display name
-- real name
-- shirt number
-- shirt size: `S, M, L, XL, 2XL, 3XL, 4XL, 5XL`
-- role
-- captain
-- custom draggable formation
-- reserve bench
-
-## Important security note
-
-Do not put `MONGODB_URI` in frontend code. Add it only in `.env` locally and in Vercel Environment Variables.
-
-If you already pasted your real MongoDB password in chat or committed it somewhere, rotate/change that MongoDB Atlas password.
-
-## Local setup
-
-```bash
-npm install
-```
-
-Create `.env`:
-
-```env
-MONGODB_URI="mongodb+srv://YOUR_USER:YOUR_PASSWORD@YOUR_CLUSTER/YOUR_DATABASE?retryWrites=true&w=majority"
-VITE_API_URL="http://localhost:4000"
-```
-
-Generate Prisma client:
-
-```bash
-npm run prisma:generate
-```
-
-Push Prisma model to MongoDB:
-
-```bash
-npm run prisma:push
-```
-
-Run locally:
-
-```bash
-npm run dev
-```
-
-This runs:
-
-- Vite frontend
-- Vercel API routes locally through `vercel dev --listen 4000`
-
-## Vercel deployment
-
-In Vercel Project Settings → Environment Variables, add:
-
-```env
-MONGODB_URI="mongodb+srv://YOUR_USER:YOUR_PASSWORD@YOUR_CLUSTER/YOUR_DATABASE?retryWrites=true&w=majority"
-```
-
-For Vercel production, you normally do not need `VITE_API_URL`, because the frontend calls same-domain API routes:
-
-```txt
-/api/squads/latest
-/api/squads
-```
-
-## API routes
-
-```txt
-GET    /api/squads/latest
-POST   /api/squads
-DELETE /api/squads
-```
-
-## About `lib/mongodb.ts`
-
-The project includes your requested Vercel MongoDB helper:
+Why: your deployed function crashed at `/api/squads/latest`. The Prisma v6/v7 MongoDB setup was causing deployment/runtime issues. This version uses your requested Vercel MongoDB pattern:
 
 ```ts
 import { MongoClient, type MongoClientOptions } from "mongodb";
 import { attachDatabasePool } from "@vercel/functions";
 ```
 
-That helper is useful for native MongoDB-driver endpoints.
+## Environment variables in Vercel
 
-The current squad APIs use Prisma through `lib/prisma.ts`. Prisma does not use the native `MongoClient` instance directly.
+Set:
+
+```env
+MONGODB_URI="mongodb+srv://YOUR_USER:YOUR_PASSWORD@YOUR_CLUSTER/?retryWrites=true&w=majority"
+MONGODB_DB="football_squad_builder"
+```
+
+Do not set this in Vercel production:
+
+```env
+VITE_API_URL=http://localhost:4000
+```
+
+The production frontend automatically calls same-domain API routes.
+
+## API routes
+
+```txt
+GET    /api/health
+GET    /api/squads/latest
+POST   /api/squads
+DELETE /api/squads
+```
+
+## Test after deployment
+
+Open:
+
+```txt
+https://your-app.vercel.app/api/health
+```
+
+Expected:
+
+```json
+{
+  "ok": true,
+  "database": "football_squad_builder",
+  "hasMongoUri": true
+}
+```
+
+Then open:
+
+```txt
+https://your-app.vercel.app/api/squads/latest
+```
+
+Expected JSON squad data.
+
+## Local setup
+
+```bash
+npm install
+npm run dev
+```
+
+For local `.env`:
+
+```env
+MONGODB_URI="mongodb+srv://YOUR_USER:YOUR_PASSWORD@YOUR_CLUSTER/?retryWrites=true&w=majority"
+MONGODB_DB="football_squad_builder"
+VITE_API_URL="http://localhost:4000"
+```
+
+## Security note
+
+If you pasted your real MongoDB password into chat or committed it, rotate/change it in MongoDB Atlas.

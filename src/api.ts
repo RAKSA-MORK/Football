@@ -1,6 +1,20 @@
 import type { Formation, FormationName, Player } from "./types";
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+/**
+ * Important:
+ * - In Vercel production, API routes live on the same domain as the frontend.
+ *   So production must call "/api/..." and must NOT call localhost.
+ * - In local dev, Vite runs on 5173 and Vercel API routes run on 4000.
+ */
+function getApiBaseUrl() {
+  if (import.meta.env.PROD) {
+    return "";
+  }
+
+  return import.meta.env.VITE_API_URL || "http://localhost:4000";
+}
+
+const API_URL = getApiBaseUrl();
 
 export type SquadStatePayload = {
   players: Player[];
@@ -9,10 +23,12 @@ export type SquadStatePayload = {
 };
 
 export async function fetchSavedSquad(): Promise<Partial<SquadStatePayload>> {
-  const response = await fetch(`${API_URL}/api/squads/latest`);
+  const response = await fetch(`${API_URL}/api/squads/latest`, {
+    cache: "no-store",
+  });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch saved squad");
+    throw new Error(`Failed to fetch saved squad: ${response.status}`);
   }
 
   return response.json();
@@ -28,7 +44,7 @@ export async function saveSquad(payload: SquadStatePayload) {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to save squad");
+    throw new Error(`Failed to save squad: ${response.status}`);
   }
 
   return response.json();
@@ -40,7 +56,7 @@ export async function clearSavedSquadFile() {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to clear squad");
+    throw new Error(`Failed to clear squad: ${response.status}`);
   }
 
   return response.json();

@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/customformationbuilder.tsx","./src/footballpitch.tsx","./src/playerform.tsx","./src/playertable.tsx","./src/api.ts","./src/exporters.ts","./src/formations.ts","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts"],"errors":true,"version":"6.0.3"}
+{"root":["./src/app.tsx","./src/customformationbuilder.tsx","./src/footballpitch.tsx","./src/playerform.tsx","./src/playertable.tsx","./src/api.ts","./src/exporters.ts","./src/formations.ts","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts"],"version":"6.0.3"}

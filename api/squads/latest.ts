@@ -1,17 +1,16 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { prisma } from "../../lib/prisma";
+import { getDatabase } from "../../lib/mongodb";
 
 const DEFAULT_KEY = "default";
 
-export default async function handler(_req: VercelRequest, res: VercelResponse) {
-  if (_req.method !== "GET") {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== "GET") {
     return res.status(405).json({ message: "Method not allowed." });
   }
 
   try {
-    const squad = await prisma.squadState.findUnique({
-      where: { key: DEFAULT_KEY },
-    });
+    const db = getDatabase();
+    const squad = await db.collection("squad_states").findOne({ key: DEFAULT_KEY });
 
     if (!squad) {
       return res.status(200).json({
@@ -22,13 +21,16 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     }
 
     return res.status(200).json({
-      players: squad.players,
-      formationName: squad.formationName,
-      customFormation: squad.customFormation,
+      players: squad.players ?? [],
+      formationName: squad.formationName ?? "4-4-2",
+      customFormation: squad.customFormation ?? null,
       updatedAt: squad.updatedAt,
     });
   } catch (error) {
     console.error("Failed to read squad:", error);
-    return res.status(500).json({ message: "Failed to read squad data." });
+    return res.status(500).json({
+      message: "Failed to read squad data.",
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
