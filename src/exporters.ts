@@ -21,6 +21,7 @@ export function exportPlayersAsExcel(players: Player[]) {
     No: index + 1,
     Name: player.name,
     "Shirt Number": player.shirtNumber,
+    "Shirt Size": player.shirtSize ?? "M",
     Role: player.role,
     Captain: player.isCaptain ? "Yes" : "No",
     Type: player.role === "Reserve" ? "Reserve Player" : "Lineup Player",

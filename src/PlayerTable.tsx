@@ -16,7 +16,7 @@ export function PlayerTable({ players, onUpdateRole, onToggleCaptain, onRemove }
 
       <div className="space-y-3">
         {players.map((player) => (
-          <div key={player.id} className="grid gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 md:grid-cols-[1fr_88px_220px_118px_42px] md:items-center">
+          <div key={player.id} className="grid gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 md:grid-cols-[1fr_88px_88px_220px_118px_42px] md:items-center">
             <div className="flex items-center gap-3">
               <div className={`grid h-11 w-11 place-items-center rounded-2xl text-sm font-black text-white ${player.role === "Reserve" ? "bg-slate-500" : "bg-red-600"}`}>
                 {roleShortName[player.role]}
@@ -31,6 +31,10 @@ export function PlayerTable({ players, onUpdateRole, onToggleCaptain, onRemove }
 
             <span className="rounded-full bg-white px-3 py-2 text-center text-sm font-bold text-slate-700">
               No. {player.shirtNumber}
+            </span>
+
+            <span className="rounded-full bg-white px-3 py-2 text-center text-sm font-bold text-emerald-700">
+              {player.shirtSize ?? "M"}
             </span>
 
             <select

@@ -10,27 +10,29 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@prisma/client": "latest",
+    "@tailwindcss/vite": "latest",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "html-to-image": "latest",
+    "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
     "tailwindcss": "latest",
-    "@tailwindcss/vite": "latest",
-    "html-to-image": "latest",
-    "xlsx": "latest",
-    "lucide-react": "latest",
-    "@prisma/client": "latest",
-    "cors": "latest",
-    "dotenv": "latest",
-    "express": "latest"
+    "typescript": "latest",
+    "vite": "latest",
+    "xlsx": "latest"
   },
   "devDependencies": {
-    "concurrently": "latest",
-    "prisma": "latest",
-    "tsx": "latest",
     "@types/cors": "latest",
     "@types/express": "latest",
-    "@types/node": "latest"
+    "@types/node": "latest",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "concurrently": "latest",
+    "prisma": "latest",
+    "tsx": "latest"
   }
 }

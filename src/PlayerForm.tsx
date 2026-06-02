@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { roles } from "./formations";
-import type { Player, Role } from "./types";
+import { roles, shirtSizes } from "./formations";
+import type { Player, Role, ShirtSize } from "./types";
 
 interface PlayerFormProps {
   players: Player[];
@@ -21,6 +21,7 @@ export function PlayerForm({ players, onAddPlayer }: PlayerFormProps) {
     const name = String(formData.get("name") ?? "").trim();
     const shirtNumberText = String(formData.get("shirtNumber") ?? "").trim();
     const requestedRole = String(formData.get("role") ?? "Reserve") as Role;
+    const shirtSize = String(formData.get("shirtSize") ?? "M") as ShirtSize;
     const isCaptain = formData.get("isCaptain") === "on";
     const role: Role =
       requestedRole !== "Reserve" &&
@@ -39,7 +40,7 @@ export function PlayerForm({ players, onAddPlayer }: PlayerFormProps) {
     }
 
     const shirtNumber = Number(shirtNumberText);
-    if (!Number.isInteger(shirtNumber) || shirtNumber < 1 || shirtNumber > 99) {
+    if (!Number.isInteger(shirtNumber) || shirtNumber < 1 || shirtNumber > 9999) {
       setError("Shirt number must be between 1 and 99.");
       return;
     }
@@ -49,7 +50,7 @@ export function PlayerForm({ players, onAddPlayer }: PlayerFormProps) {
       return;
     }
 
-    onAddPlayer({ name, shirtNumber, role, isCaptain });
+    onAddPlayer({ name, shirtNumber, shirtSize, role, isCaptain });
 
     if (role === "Reserve" && requestedRole !== "Reserve") {
       setError(`${requestedRole} already has a player, so ${name} was added as Reserve.`);
@@ -104,7 +105,21 @@ export function PlayerForm({ players, onAddPlayer }: PlayerFormProps) {
           />
         </label>
 
-        <label className="grid gap-1 text-sm font-semibold text-slate-700 sm:col-span-2">
+        <label className="grid gap-1 text-sm font-semibold text-slate-700">
+          Shirt size
+          <select
+            name="shirtSize"
+            defaultValue="M"
+            disabled={maxReached}
+            className="rounded-2xl border border-slate-200 px-4 py-3 outline-none ring-emerald-500 transition focus:ring-2 disabled:bg-slate-100"
+          >
+            {shirtSizes.map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="grid gap-1 text-sm font-semibold text-slate-700">
           Position / role
           <select
             name="role"

@@ -1,4 +1,4 @@
-import type { Formation, FormationName, Role, RoleSlot } from "./types";
+import type { Formation, FormationName, Role, RoleSlot, ShirtSize } from "./types";
 
 export const roles: Role[] = [
   "Goalkeeper",
@@ -15,6 +15,8 @@ export const roles: Role[] = [
 ];
 
 export const pitchRoles = roles.filter((role) => role !== "Reserve") as Exclude<Role, "Reserve">[];
+
+export const shirtSizes: ShirtSize[] = ["S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
 
 export const roleShortName: Record<Role, string> = {
   "Goalkeeper": "GK",

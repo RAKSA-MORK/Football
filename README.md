@@ -1,20 +1,18 @@
-# Football Squad Builder v10
+# Football Squad Builder v11
 
-This version connects the Vite React app to MongoDB using a small Express + Prisma backend.
+This version adds a shirt size combo box when creating a new player.
 
-## Important
+## Shirt size values
 
-Do not put your MongoDB URI inside React/Vite frontend code. Prisma must run on the backend only.
-
-## Setup
-
-1. Install dependencies:
-
-```bash
-npm install
+```txt
+S, M, L, XL, 2XL, 3XL, 4XL, 5XL
 ```
 
-2. Create `.env` in the project root:
+The size is saved together with each player and exported to Excel/CSV.
+
+## MongoDB + Prisma setup
+
+Create `.env`:
 
 ```env
 MONGODB_URI="mongodb+srv://YOUR_USER:YOUR_PASSWORD@YOUR_CLUSTER/YOUR_DATABASE?retryWrites=true&w=majority"
@@ -22,45 +20,11 @@ PORT=4000
 VITE_API_URL="http://localhost:4000"
 ```
 
-3. Generate Prisma Client:
+Run:
 
 ```bash
+npm install
 npm run prisma:generate
-```
-
-4. Push the Prisma schema to MongoDB:
-
-```bash
 npm run prisma:push
-```
-
-5. Run frontend and backend together:
-
-```bash
 npm run dev
 ```
-
-This starts:
-
-- Vite frontend: `http://localhost:5173`
-- Express API: `http://localhost:4000`
-
-## API routes
-
-```txt
-GET  /api/squads/latest
-POST /api/squads
-```
-
-## Persistence
-
-The app saves:
-
-- players
-- roles
-- shirt numbers
-- captain selection
-- selected formation
-- custom formation dragged positions
-
-Data is saved to MongoDB. localStorage is still used as a fallback if the API is unavailable.

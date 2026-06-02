@@ -45,7 +45,10 @@
             <label class="grid gap-1 text-sm font-semibold">Shirt number
               <input id="shirtNumber" name="shirtNumber" type="number" min="1" max="99" placeholder="10" class="rounded-2xl border px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"/>
             </label>
-            <label class="grid gap-1 text-sm font-semibold sm:col-span-2">Position / role
+            <label class="grid gap-1 text-sm font-semibold">Shirt size
+              <select id="shirtSize" name="shirtSize" class="rounded-2xl border px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"></select>
+            </label>
+            <label class="grid gap-1 text-sm font-semibold">Position / role
               <select id="role" name="role" class="rounded-2xl border px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"></select>
             </label>
             <label class="flex gap-3 rounded-2xl border px-4 py-3 font-semibold sm:col-span-2">
@@ -81,6 +84,7 @@
 
 <script>
 const roles = ["Goalkeeper","Center Back","Left Back","Right Back","Defensive Midfielder","Central Midfielder","Attacking Midfielder","Left Winger","Right Winger","Striker","Reserve"];
+const shirtSizes = ["S","M","L","XL","2XL","3XL","4XL","5XL"];
 const pitchRoles = roles.filter(r => r !== "Reserve");
 const short = {"Goalkeeper":"GK","Center Back":"CB","Left Back":"LB","Right Back":"RB","Defensive Midfielder":"DM","Central Midfielder":"CM","Attacking Midfielder":"AM","Left Winger":"LW","Right Winger":"RW","Striker":"ST","Reserve":"RES"};
 const slot = (id, role, label, x, y) => ({id, role, label, x, y});
@@ -162,6 +166,7 @@ function buildCustomFromCurrentFormation() {
 function init() {
   loadSavedState();
   document.getElementById("role").innerHTML = roles.map(r => `<option value="${r}" ${r==="Reserve"?"selected":""}>${r}</option>`).join("");
+  document.getElementById("shirtSize").innerHTML = shirtSizes.map(s => `<option value="${s}" ${s==="M"?"selected":""}>${s}</option>`).join("");
   document.getElementById("formationSelect").innerHTML = [...Object.keys(formations), "Custom"].map(f => `<option value="${f}">${f}</option>`).join("");
   document.getElementById("formationSelect").value = formationName;
   document.getElementById("formationSelect").addEventListener("change", e => {
@@ -191,6 +196,7 @@ function addPlayerFromForm(e) {
   const name = document.getElementById("playerName").value.trim();
   const shirtNumberText = document.getElementById("shirtNumber").value.trim();
   const requestedRole = document.getElementById("role").value;
+  const shirtSize = document.getElementById("shirtSize").value || "M";
   const isCaptain = document.getElementById("isCaptain").checked;
 
   if (players.length >= 18) return showError("Maximum player limit reached. You can register up to 18 players only.");
@@ -205,10 +211,11 @@ function addPlayerFromForm(e) {
     : requestedRole;
 
   if (isCaptain) players = players.map(p => ({...p, isCaptain:false}));
-  players.push({ id: crypto.randomUUID(), name, shirtNumber, role: finalRole, isCaptain });
+  players.push({ id: crypto.randomUUID(), name, shirtNumber, shirtSize, role: finalRole, isCaptain });
 
   e.target.reset();
   document.getElementById("role").value = "Reserve";
+  document.getElementById("shirtSize").value = "M";
   render();
 
   if (finalRole === "Reserve" && requestedRole !== "Reserve") {
@@ -259,7 +266,7 @@ function renderPitch() {
       </div>
       <div class="mt-1 max-w-32 rounded-full bg-black/35 px-2 py-1 text-center text-[10px] font-bold leading-tight text-white backdrop-blur">
         <div class="truncate">${player.name}</div>
-        <div class="truncate opacity-90">${s.label}</div>
+        <div class="truncate opacity-90">${s.label} · Size ${player.shirtSize || "M"}</div>
       </div>
     `;
     node.addEventListener("pointerdown", (e) => {
@@ -295,7 +302,7 @@ function renderBenchArea() {
       : `<div class="flex flex-wrap gap-3">${reserves.map(p => `
           <div class="flex items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-sm">
             <div class="grid h-10 w-10 place-items-center rounded-xl bg-slate-600 text-xs font-black text-white">#${p.shirtNumber}</div>
-            <div><p class="text-sm font-black text-slate-900">${p.name} ${p.isCaptain ? `<span class="text-amber-500">(C)</span>` : ""}</p><p class="text-xs font-bold text-slate-500">Reserve</p></div>
+            <div><p class="text-sm font-black text-slate-900">${p.name} ${p.isCaptain ? `<span class="text-amber-500">(C)</span>` : ""}</p><p class="text-xs font-bold text-slate-500">Reserve · Size ${p.shirtSize || "M"}</p></div>
           </div>
         `).join("")}</div>`}
   `;
@@ -357,12 +364,13 @@ function renderSquad() {
     return;
   }
   list.innerHTML = players.map(p => `
-    <div class="grid gap-3 rounded-2xl border bg-slate-50 p-3 md:grid-cols-[1fr_88px_220px_118px_42px] md:items-center">
+    <div class="grid gap-3 rounded-2xl border bg-slate-50 p-3 md:grid-cols-[1fr_88px_88px_220px_118px_42px] md:items-center">
       <div class="flex items-center gap-3">
         <div class="grid h-11 w-11 place-items-center rounded-2xl text-sm font-black text-white ${p.role==="Reserve" ? "bg-slate-500" : "bg-red-600"}">${short[p.role]}</div>
         <div><p class="font-bold">${p.name} ${p.isCaptain ? `<span class="text-amber-500">(C)</span>` : ""}</p><p class="text-sm text-slate-500">#${p.shirtNumber}</p></div>
       </div>
       <span class="rounded-full bg-white px-3 py-2 text-center text-sm font-bold">No. ${p.shirtNumber}</span>
+      <span class="rounded-full bg-white px-3 py-2 text-center text-sm font-bold text-emerald-700">${p.shirtSize || "M"}</span>
       <select data-role-id="${p.id}" class="rounded-xl border bg-white px-3 py-2 text-sm font-semibold">
         ${roles.map(r => `<option value="${r}" ${r===p.role?"selected":""}>${r}</option>`).join("")}
       </select>
@@ -397,8 +405,8 @@ async function exportPng() {
 }
 
 function exportCsv() {
-  const header = "No,Name,Shirt Number,Role,Captain,Type\n";
-  const rows = players.map((p,i) => [i+1, p.name, p.shirtNumber, p.role, p.isCaptain ? "Yes" : "No", p.role === "Reserve" ? "Reserve Player" : "Lineup Player"].map(v => `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+  const header = "No,Name,Shirt Number,Shirt Size,Role,Captain,Type\n";
+  const rows = players.map((p,i) => [i+1, p.name, p.shirtNumber, p.shirtSize || "M", p.role, p.isCaptain ? "Yes" : "No", p.role === "Reserve" ? "Reserve Player" : "Lineup Player"].map(v => `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
   const blob = new Blob([header + rows], {type:"text/csv"});
   const a = document.createElement("a");
   a.download = "football-squad.csv";

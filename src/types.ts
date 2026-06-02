@@ -13,10 +13,13 @@ export type Role =
 
 export type FormationName = "4-4-2" | "4-3-3" | "3-5-2" | "4-2-3-1" | "Custom";
 
+export type ShirtSize = "S" | "M" | "L" | "XL" | "2XL" | "3XL" | "4XL" | "5XL";
+
 export interface Player {
   id: string;
   name: string;
   shirtNumber: number;
+  shirtSize: ShirtSize;
   role: Role;
   isCaptain: boolean;
 }

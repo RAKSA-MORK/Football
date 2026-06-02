@@ -85,7 +85,7 @@ export const FootballPitch = forwardRef<HTMLDivElement, FootballPitchProps>(
 
                 <div className="mt-1 max-w-32 rounded-full bg-black/35 px-2 py-1 text-center text-[10px] font-bold leading-tight text-white backdrop-blur">
                   <div className="truncate">{player.name}</div>
-                  <div className="truncate opacity-90">{slot.label}</div>
+                  <div className="truncate opacity-90">{slot.label} · Size {player.shirtSize ?? "M"}</div>
                 </div>
               </div>
             );
@@ -118,7 +118,7 @@ export const FootballPitch = forwardRef<HTMLDivElement, FootballPitchProps>(
                     <p className="text-sm font-black text-slate-900">
                       {player.name} {player.isCaptain && <span className="text-amber-500">(C)</span>}
                     </p>
-                    <p className="text-xs font-bold text-slate-500">Reserve</p>
+                    <p className="text-xs font-bold text-slate-500">Reserve · Size {player.shirtSize ?? "M"}</p>
                   </div>
                 </div>
               ))}
