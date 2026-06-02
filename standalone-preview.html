@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Football Squad Builder Standalone Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    body{background:#f8fafc;font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#0f172a}
+    .pitch-grass{background:repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 9%,rgba(0,0,0,.04) 9% 18%),linear-gradient(135deg,#2f8f3f,#176534)}
+    .pitch-line{position:absolute;border:2px solid rgba(255,255,255,.82);pointer-events:none}
+    .shirt{clip-path:polygon(25% 8%,38% 0,62% 0,75% 8%,92% 18%,82% 38%,72% 32%,72% 100%,28% 100%,28% 32%,18% 38%,8% 18%);filter:drop-shadow(0 8px 8px rgba(0,0,0,.25))}
+  </style>
+</head>
+<body>
+<main class="min-h-screen px-4 py-6 lg:px-8">
+  <section class="mx-auto max-w-7xl">
+    <div class="mb-6 rounded-3xl bg-slate-950 p-6 text-white shadow-xl">
+      <p class="text-sm font-bold uppercase tracking-[0.3em] text-emerald-300">Squad Builder</p>
+      <div class="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 class="text-3xl font-black md:text-5xl">Football Team Registration</h1>
+          <p class="mt-2 max-w-2xl text-slate-300">Saved in browser localStorage. Refresh the page and your squad/custom formation will stay.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button id="clearSaved" class="rounded-2xl bg-slate-800 px-4 py-3 font-bold text-white ring-1 ring-white/15">Clear Saved Data</button>
+          <button id="exportPng" class="rounded-2xl bg-white px-4 py-3 font-bold text-slate-950">Export PNG</button>
+          <button id="exportCsv" class="rounded-2xl bg-emerald-500 px-4 py-3 font-bold text-white">Export CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-[440px_1fr]">
+      <div class="space-y-6">
+        <form id="playerForm" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 class="text-lg font-bold">Register Player</h2>
+          <p id="playerCount" class="text-sm text-slate-500">0/18 players registered</p>
+          <p class="mb-4 mt-1 text-xs font-semibold text-slate-400">If a selected role already has a player, the new player is added as Reserve automatically.</p>
+          <div id="formError" class="mb-4 hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"></div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="grid gap-1 text-sm font-semibold">Player name
+              <input id="playerName" name="playerName" placeholder="e.g. Dara Sok" class="rounded-2xl border px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"/>
+            </label>
+            <label class="grid gap-1 text-sm font-semibold">Shirt number
+              <input id="shirtNumber" name="shirtNumber" type="number" min="1" max="99" placeholder="10" class="rounded-2xl border px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"/>
+            </label>
+            <label class="grid gap-1 text-sm font-semibold sm:col-span-2">Position / role
+              <select id="role" name="role" class="rounded-2xl border px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"></select>
+            </label>
+            <label class="flex gap-3 rounded-2xl border px-4 py-3 font-semibold sm:col-span-2">
+              <input id="isCaptain" name="isCaptain" type="checkbox"/> Make this player captain
+            </label>
+          </div>
+          <button class="mt-5 w-full rounded-2xl bg-emerald-600 px-4 py-3 font-bold text-white" type="submit">Add Player</button>
+        </form>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <label class="grid gap-2 text-sm font-bold">Formation / Strategy
+            <select id="formationSelect" class="rounded-2xl border px-4 py-3 text-base outline-none focus:ring-2 focus:ring-emerald-500"></select>
+          </label>
+          <p class="mt-3 text-sm text-slate-500">Reserve players are saved in the list, but not placed on the pitch.</p>
+        </div>
+
+      </div>
+
+      <div class="space-y-6">
+        <div class="rounded-[2rem] border border-slate-200 bg-white p-3 shadow-sm">
+          <div id="pitch" class="pitch-grass relative aspect-[4/3] w-full touch-none overflow-hidden rounded-[1.6rem] border-4 border-white shadow-2xl"></div>
+          <div id="benchArea" class="mt-3 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4"></div>
+        </div>
+        <div id="customBuilder" class="hidden rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm"></div>
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 class="mb-4 text-lg font-bold">Squad List</h2>
+          <div id="squadList" class="space-y-3"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const roles = ["Goalkeeper","Center Back","Left Back","Right Back","Defensive Midfielder","Central Midfielder","Attacking Midfielder","Left Winger","Right Winger","Striker","Reserve"];
+const pitchRoles = roles.filter(r => r !== "Reserve");
+const short = {"Goalkeeper":"GK","Center Back":"CB","Left Back":"LB","Right Back":"RB","Defensive Midfielder":"DM","Central Midfielder":"CM","Attacking Midfielder":"AM","Left Winger":"LW","Right Winger":"RW","Striker":"ST","Reserve":"RES"};
+const slot = (id, role, label, x, y) => ({id, role, label, x, y});
+const formations = {
+  "4-4-2": {name:"4-4-2", slots:[slot("gk","Goalkeeper","Goalkeeper",50,92),slot("lb","Left Back","Left Back",18,72),slot("cb1","Center Back","Center Back",39,72),slot("cb2","Center Back","Center Back",61,72),slot("rb","Right Back","Right Back",82,72),slot("lm","Left Winger","Left Midfield",18,48),slot("cm1","Central Midfielder","Centre Midfield",39,50),slot("cm2","Central Midfielder","Centre Midfield",61,50),slot("rm","Right Winger","Right Midfield",82,48),slot("st1","Striker","Centre Forward",39,20),slot("st2","Striker","Centre Forward",61,20)]},
+  "4-3-3": {name:"4-3-3", slots:[slot("gk","Goalkeeper","Goalkeeper",50,92),slot("lb","Left Back","Left Back",16,72),slot("cb1","Center Back","Center Back",39,74),slot("cb2","Center Back","Center Back",61,74),slot("rb","Right Back","Right Back",84,72),slot("dm","Defensive Midfielder","Defensive Midfield",50,58),slot("cm1","Central Midfielder","Central Midfield",35,46),slot("cm2","Central Midfielder","Central Midfield",65,46),slot("lw","Left Winger","Left Winger",20,23),slot("st","Striker","Striker",50,18),slot("rw","Right Winger","Right Winger",80,23)]},
+  "3-5-2": {name:"3-5-2", slots:[slot("gk","Goalkeeper","Goalkeeper",50,92),slot("cb1","Center Back","Center Back",30,73),slot("cb2","Center Back","Center Back",50,76),slot("cb3","Center Back","Center Back",70,73),slot("lm","Left Winger","Left Midfield",14,50),slot("dm","Defensive Midfielder","Defensive Midfield",38,56),slot("cm","Central Midfielder","Central Midfield",50,46),slot("am","Attacking Midfielder","Attacking Midfield",62,56),slot("rm","Right Winger","Right Midfield",86,50),slot("st1","Striker","Striker",39,20),slot("st2","Striker","Striker",61,20)]},
+  "4-2-3-1": {name:"4-2-3-1", slots:[slot("gk","Goalkeeper","Goalkeeper",50,92),slot("lb","Left Back","Left Back",16,73),slot("cb1","Center Back","Center Back",39,75),slot("cb2","Center Back","Center Back",61,75),slot("rb","Right Back","Right Back",84,73),slot("dm1","Defensive Midfielder","Defensive Midfield",40,58),slot("dm2","Defensive Midfielder","Defensive Midfield",60,58),slot("lw","Left Winger","Left Winger",20,39),slot("am","Attacking Midfielder","Attacking Midfield",50,36),slot("rw","Right Winger","Right Winger",80,39),slot("st","Striker","Striker",50,17)]}
+};
+let customFormation = {name:"Custom", slots:[slot("gk","Goalkeeper","Goalkeeper",50,92),slot("cb","Center Back","Center Back",50,72),slot("cm","Central Midfielder","Central Midfielder",50,50),slot("st","Striker","Striker",50,22)]};
+let players = [];
+let formationName = "4-4-2";
+let draggingSlotId = null;
+const STORAGE_KEY = "football-squad-builder-v9";
+
+function loadSavedState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    players = Array.isArray(saved.players) ? saved.players : [];
+    formationName = saved.formationName || "4-4-2";
+    customFormation = saved.customFormation || customFormation;
+  } catch {
+    players = [];
+    formationName = "4-4-2";
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    players,
+    formationName,
+    customFormation
+  }));
+}
+
+function clearSavedState() {
+  localStorage.removeItem(STORAGE_KEY);
+  players = [];
+  formationName = "4-4-2";
+  customFormation = {name:"Custom", slots:[slot("gk","Goalkeeper","Goalkeeper",50,92),slot("cb","Center Back","Center Back",50,72),slot("cm","Central Midfielder","Central Midfielder",50,50),slot("st","Striker","Striker",50,22)]};
+  document.getElementById("formationSelect").value = formationName;
+  render();
+}
+
+function buildCustomFromCurrentFormation() {
+  const source = formationName === "Custom" ? customFormation : formations[formationName];
+  const copiedSlots = source.slots.map(s => ({
+    id: crypto.randomUUID(),
+    role: s.role,
+    label: s.label,
+    x: s.x,
+    y: s.y
+  }));
+
+  const fallbackPositions = [
+    {x:50,y:92},{x:18,y:72},{x:39,y:72},{x:61,y:72},{x:82,y:72},
+    {x:25,y:50},{x:50,y:50},{x:75,y:50},{x:25,y:25},{x:50,y:18},{x:75,y:25}
+  ];
+
+  const existingRoles = new Set(copiedSlots.map(s => s.role));
+  players.filter(p => p.role !== "Reserve").forEach((player, index) => {
+    if (existingRoles.has(player.role)) return;
+    const position = fallbackPositions[index % fallbackPositions.length];
+    copiedSlots.push({
+      id: crypto.randomUUID(),
+      role: player.role,
+      label: player.role,
+      x: position.x,
+      y: position.y
+    });
+    existingRoles.add(player.role);
+  });
+
+  customFormation = { name: "Custom", slots: copiedSlots };
+}
+
+function init() {
+  loadSavedState();
+  document.getElementById("role").innerHTML = roles.map(r => `<option value="${r}" ${r==="Reserve"?"selected":""}>${r}</option>`).join("");
+  document.getElementById("formationSelect").innerHTML = [...Object.keys(formations), "Custom"].map(f => `<option value="${f}">${f}</option>`).join("");
+  document.getElementById("formationSelect").value = formationName;
+  document.getElementById("formationSelect").addEventListener("change", e => {
+    if (e.target.value === "Custom") buildCustomFromCurrentFormation();
+    formationName = e.target.value;
+    render();
+  });
+  document.getElementById("playerForm").addEventListener("submit", addPlayerFromForm);
+  document.getElementById("exportPng").addEventListener("click", exportPng);
+  document.getElementById("exportCsv").addEventListener("click", exportCsv);
+  document.getElementById("clearSaved").addEventListener("click", clearSavedState);
+  window.addEventListener("pointerup", () => draggingSlotId = null);
+  render();
+}
+
+function showError(message) {
+  const box = document.getElementById("formError");
+  box.textContent = message;
+  box.className = "mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700";
+  box.classList.toggle("hidden", !message);
+}
+
+function addPlayerFromForm(e) {
+  e.preventDefault();
+  showError("");
+
+  const name = document.getElementById("playerName").value.trim();
+  const shirtNumberText = document.getElementById("shirtNumber").value.trim();
+  const requestedRole = document.getElementById("role").value;
+  const isCaptain = document.getElementById("isCaptain").checked;
+
+  if (players.length >= 18) return showError("Maximum player limit reached. You can register up to 18 players only.");
+  if (!name || !shirtNumberText) return showError("Please enter player name and shirt number.");
+
+  const shirtNumber = Number(shirtNumberText);
+  if (!Number.isInteger(shirtNumber) || shirtNumber < 1 || shirtNumber > 99) return showError("Shirt number must be between 1 and 99.");
+  if (players.some(p => p.shirtNumber === shirtNumber)) return showError("This shirt number is already used.");
+
+  const finalRole = requestedRole !== "Reserve" && players.some(p => p.role === requestedRole)
+    ? "Reserve"
+    : requestedRole;
+
+  if (isCaptain) players = players.map(p => ({...p, isCaptain:false}));
+  players.push({ id: crypto.randomUUID(), name, shirtNumber, role: finalRole, isCaptain });
+
+  e.target.reset();
+  document.getElementById("role").value = "Reserve";
+  render();
+
+  if (finalRole === "Reserve" && requestedRole !== "Reserve") {
+    showError(`${requestedRole} already has a player, so ${name} was added as Reserve.`);
+    const box = document.getElementById("formError");
+    box.className = "mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800";
+  }
+}
+
+function currentFormation() {
+  return formationName === "Custom" ? customFormation : formations[formationName];
+}
+
+function renderPitch() {
+  const pitch = document.getElementById("pitch");
+  const lineupCount = players.filter(p => p.role !== "Reserve").length;
+  pitch.innerHTML = `
+    <div class="pitch-line left-[6%] top-[4%] h-[92%] w-[88%]"></div>
+    <div class="pitch-line left-[28%] top-[-18%] h-[38%] w-[44%] rounded-b-full"></div>
+    <div class="pitch-line left-[32%] bottom-[-1%] h-[18%] w-[36%]"></div>
+    <div class="pitch-line left-[38%] bottom-[-1%] h-[8%] w-[24%]"></div>
+    <div class="pitch-line left-[6%] top-1/2 h-0 w-[88%]"></div>
+    <div class="pitch-line left-1/2 top-[45%] h-[10%] w-[10%] -translate-x-1/2 rounded-full"></div>
+    ${lineupCount === 0 ? `<div class="absolute inset-0 grid place-items-center"><div class="rounded-3xl bg-black/30 px-6 py-4 text-center text-white backdrop-blur"><p class="text-lg font-black">No lineup players yet</p><p class="text-sm opacity-90">Add a player to show them on the field.</p></div></div>` : ""}
+  `;
+
+  const occupied = {};
+  currentFormation().slots.forEach(s => {
+    const count = occupied[s.role] || 0;
+    const player = players.filter(p => p.role === s.role)[count];
+    occupied[s.role] = count + 1;
+
+    // Do not render empty role placeholders.
+    if (!player) return;
+
+    const node = document.createElement("div");
+    node.className = `absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center ${formationName==="Custom" ? "cursor-grab active:cursor-grabbing" : ""}`;
+    node.style.left = s.x + "%";
+    node.style.top = s.y + "%";
+    node.dataset.slotId = s.id;
+    node.innerHTML = `
+      <div class="relative">
+        <div class="shirt flex h-14 w-14 flex-col items-center justify-center text-white ${s.role==="Goalkeeper" ? "bg-zinc-400" : "bg-red-600"}">
+          <span class="text-[10px] font-black leading-none">${short[s.role]}</span>
+          <span class="text-sm font-black leading-none">${player.shirtNumber}</span>
+        </div>
+        ${player.isCaptain ? `<div class="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-amber-400 text-xs font-black text-slate-950">C</div>` : ""}
+      </div>
+      <div class="mt-1 max-w-32 rounded-full bg-black/35 px-2 py-1 text-center text-[10px] font-bold leading-tight text-white backdrop-blur">
+        <div class="truncate">${player.name}</div>
+        <div class="truncate opacity-90">${s.label}</div>
+      </div>
+    `;
+    node.addEventListener("pointerdown", (e) => {
+      if (formationName !== "Custom") return;
+      draggingSlotId = s.id;
+      node.setPointerCapture(e.pointerId);
+    });
+    node.addEventListener("pointermove", (e) => {
+      if (formationName !== "Custom" || draggingSlotId !== s.id) return;
+      const rect = pitch.getBoundingClientRect();
+      s.x = Math.min(94, Math.max(6, ((e.clientX - rect.left) / rect.width) * 100));
+      s.y = Math.min(94, Math.max(6, ((e.clientY - rect.top) / rect.height) * 100));
+      node.style.left = s.x + "%";
+      node.style.top = s.y + "%";
+      saveState();
+    });
+    pitch.appendChild(node);
+  });
+
+  renderBenchArea();
+}
+
+function renderBenchArea() {
+  const reserves = players.filter(p => p.role === "Reserve");
+  const bench = document.getElementById("benchArea");
+  bench.innerHTML = `
+    <div class="mb-3 flex items-center justify-between gap-3">
+      <div><h3 class="font-black text-slate-900">Bench / Coach Area</h3><p class="text-sm text-slate-500">Reserve players stay ready outside the field.</p></div>
+      <span class="rounded-full bg-slate-900 px-3 py-1 text-xs font-black text-white">${reserves.length} reserve</span>
+    </div>
+    ${reserves.length === 0
+      ? `<div class="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-500">No reserve players yet.</div>`
+      : `<div class="flex flex-wrap gap-3">${reserves.map(p => `
+          <div class="flex items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-sm">
+            <div class="grid h-10 w-10 place-items-center rounded-xl bg-slate-600 text-xs font-black text-white">#${p.shirtNumber}</div>
+            <div><p class="text-sm font-black text-slate-900">${p.name} ${p.isCaptain ? `<span class="text-amber-500">(C)</span>` : ""}</p><p class="text-xs font-bold text-slate-500">Reserve</p></div>
+          </div>
+        `).join("")}</div>`}
+  `;
+}
+
+function renderCustomBuilder() {
+  const box = document.getElementById("customBuilder");
+  if (formationName !== "Custom") {
+    box.classList.add("hidden");
+    return;
+  }
+  box.classList.remove("hidden");
+  box.innerHTML = `
+    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div><h2 class="text-lg font-bold">Custom Formation Builder</h2><p class="text-sm text-slate-600">Edit slots here or drag the shirts on the pitch.</p></div>
+      <button id="addSlot" class="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white">Add Role Slot</button>
+    </div>
+    <div class="space-y-3">
+      ${customFormation.slots.map(s => `
+        <div class="grid gap-3 rounded-2xl bg-white p-3 md:grid-cols-[1fr_1fr_72px_72px_42px] md:items-center">
+          <input data-field="label" data-id="${s.id}" value="${s.label}" class="rounded-xl border px-3 py-2 text-sm font-semibold"/>
+          <select data-field="role" data-id="${s.id}" class="rounded-xl border px-3 py-2 text-sm font-semibold">
+            ${pitchRoles.map(r => `<option value="${r}" ${r===s.role?"selected":""}>${r}</option>`).join("")}
+          </select>
+          <input data-field="x" data-id="${s.id}" type="number" value="${Math.round(s.x)}" class="rounded-xl border px-3 py-2 text-sm font-semibold"/>
+          <input data-field="y" data-id="${s.id}" type="number" value="${Math.round(s.y)}" class="rounded-xl border px-3 py-2 text-sm font-semibold"/>
+          <button data-remove="${s.id}" class="rounded-xl bg-red-50 p-2 text-red-500">✕</button>
+        </div>
+      `).join("")}
+    </div>
+  `;
+  document.getElementById("addSlot").onclick = () => {
+    customFormation.slots.push(slot(crypto.randomUUID(), "Central Midfielder", "Custom Role", 50, 50));
+    render();
+  };
+  box.querySelectorAll("[data-field]").forEach(el => {
+    el.addEventListener("input", e => {
+      const id = e.target.dataset.id;
+      const field = e.target.dataset.field;
+      const s = customFormation.slots.find(item => item.id === id);
+      if (!s) return;
+      s[field] = field === "x" || field === "y" ? Number(e.target.value) : e.target.value;
+      renderPitch();
+    });
+  });
+  box.querySelectorAll("[data-remove]").forEach(btn => {
+    btn.addEventListener("click", e => {
+      customFormation.slots = customFormation.slots.filter(s => s.id !== e.target.dataset.remove);
+      render();
+    });
+  });
+}
+
+function renderSquad() {
+  document.getElementById("playerCount").textContent = `${players.length}/18 players registered`;
+  const list = document.getElementById("squadList");
+  if (players.length === 0) {
+    list.innerHTML = `<div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No players yet. Add a lineup player or a reserve player.</div>`;
+    return;
+  }
+  list.innerHTML = players.map(p => `
+    <div class="grid gap-3 rounded-2xl border bg-slate-50 p-3 md:grid-cols-[1fr_88px_220px_118px_42px] md:items-center">
+      <div class="flex items-center gap-3">
+        <div class="grid h-11 w-11 place-items-center rounded-2xl text-sm font-black text-white ${p.role==="Reserve" ? "bg-slate-500" : "bg-red-600"}">${short[p.role]}</div>
+        <div><p class="font-bold">${p.name} ${p.isCaptain ? `<span class="text-amber-500">(C)</span>` : ""}</p><p class="text-sm text-slate-500">#${p.shirtNumber}</p></div>
+      </div>
+      <span class="rounded-full bg-white px-3 py-2 text-center text-sm font-bold">No. ${p.shirtNumber}</span>
+      <select data-role-id="${p.id}" class="rounded-xl border bg-white px-3 py-2 text-sm font-semibold">
+        ${roles.map(r => `<option value="${r}" ${r===p.role?"selected":""}>${r}</option>`).join("")}
+      </select>
+      <button data-captain-id="${p.id}" class="rounded-xl px-3 py-2 text-sm font-bold ${p.isCaptain ? "bg-amber-400 text-slate-950" : "bg-white text-slate-600"}">${p.isCaptain ? "Unset C" : "Captain"}</button>
+      <button data-remove-id="${p.id}" class="rounded-xl bg-white p-2 text-red-500">✕</button>
+    </div>
+  `).join("");
+  list.querySelectorAll("[data-role-id]").forEach(select => select.onchange = e => { const p = players.find(x => x.id === e.target.dataset.roleId); p.role = e.target.value; render(); });
+  list.querySelectorAll("[data-captain-id]").forEach(btn => btn.onclick = e => {
+    const selected = players.find(p => p.id === e.target.dataset.captainId);
+    const unset = selected && selected.isCaptain;
+    players = players.map(p => ({...p, isCaptain: unset ? false : p.id === e.target.dataset.captainId}));
+    render();
+  });
+  list.querySelectorAll("[data-remove-id]").forEach(btn => btn.onclick = e => { players = players.filter(p => p.id !== e.target.dataset.removeId); render(); });
+}
+
+
+function render() {
+  renderPitch();
+  renderCustomBuilder();
+  renderSquad();
+  saveState();
+}
+
+async function exportPng() {
+  const dataUrl = await htmlToImage.toPng(document.getElementById("pitch"), {cacheBust:true, pixelRatio:2, backgroundColor:"#176534"});
+  const a = document.createElement("a");
+  a.download = "football-lineup.png";
+  a.href = dataUrl;
+  a.click();
+}
+
+function exportCsv() {
+  const header = "No,Name,Shirt Number,Role,Captain,Type\n";
+  const rows = players.map((p,i) => [i+1, p.name, p.shirtNumber, p.role, p.isCaptain ? "Yes" : "No", p.role === "Reserve" ? "Reserve Player" : "Lineup Player"].map(v => `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+  const blob = new Blob([header + rows], {type:"text/csv"});
+  const a = document.createElement("a");
+  a.download = "football-squad.csv";
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+init();
+</script>
+</body>
+</html>
