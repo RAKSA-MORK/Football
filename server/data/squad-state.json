@@ -1,0 +1,48 @@
+{
+  "players": [
+    {
+      "name": "rada",
+      "realName": "11",
+      "shirtNumber": 12,
+      "shirtSize": "M",
+      "role": "Right Winger",
+      "isCaptain": false,
+      "id": "2f58994e-a7e5-4cfb-a149-49997ac91035"
+    }
+  ],
+  "formationName": "4-4-2",
+  "customFormation": {
+    "name": "Custom",
+    "slots": [
+      {
+        "id": "gk",
+        "role": "Goalkeeper",
+        "label": "Goalkeeper",
+        "x": 50,
+        "y": 92
+      },
+      {
+        "id": "cb",
+        "role": "Center Back",
+        "label": "Center Back",
+        "x": 50,
+        "y": 72
+      },
+      {
+        "id": "cm",
+        "role": "Central Midfielder",
+        "label": "Central Midfielder",
+        "x": 50,
+        "y": 50
+      },
+      {
+        "id": "st",
+        "role": "Striker",
+        "label": "Striker",
+        "x": 50,
+        "y": 22
+      }
+    ]
+  },
+  "updatedAt": "2026-06-02T07:53:38.030Z"
+}
