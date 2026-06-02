@@ -7,25 +7,29 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/vite": "latest",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
     "typescript": "latest",
+    "vite": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "html-to-image": "latest",
+    "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
     "tailwindcss": "latest",
-    "@tailwindcss/vite": "latest",
-    "html-to-image": "latest",
-    "xlsx": "latest",
-    "lucide-react": "latest",
-    "cors": "latest",
-    "dotenv": "latest",
-    "express": "latest"
+    "xlsx": "latest"
   },
   "devDependencies": {
-    "concurrently": "latest",
-    "tsx": "latest",
     "@types/cors": "latest",
     "@types/express": "latest",
-    "@types/node": "latest"
+    "@types/node": "latest",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "concurrently": "latest",
+    "tsx": "latest"
   }
 }
