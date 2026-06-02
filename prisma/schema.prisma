@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("MONGODB_URI")
+}
+
+model SquadState {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  key             String   @unique
+  players         Json
+  formationName   String
+  customFormation Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

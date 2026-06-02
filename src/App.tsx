@@ -6,9 +6,10 @@ import { FootballPitch } from "./FootballPitch";
 import { PlayerForm } from "./PlayerForm";
 import { PlayerTable } from "./PlayerTable";
 import { CustomFormationBuilder } from "./CustomFormationBuilder";
+import { fetchSavedSquad, saveSquad } from "./api";
 import type { Formation, FormationName, Player, Role, RoleSlot } from "./types";
 
-const STORAGE_KEY = "football-squad-builder-v9";
+const STORAGE_KEY = "football-squad-builder-v10";
 
 type SavedSquadState = {
   players: Player[];
@@ -34,6 +35,34 @@ export default function App() {
   const [customFormation, setCustomFormation] = useState<Formation>(savedState?.customFormation ?? formations.Custom);
   const pitchRef = useRef<HTMLDivElement | null>(null);
 
+  const hasLoadedRemoteData = useRef(false);
+
+  useEffect(() => {
+    async function loadRemoteData() {
+      try {
+        const remoteState = await fetchSavedSquad();
+
+        if (remoteState.players) {
+          setPlayers(remoteState.players);
+        }
+
+        if (remoteState.formationName) {
+          setFormationName(remoteState.formationName);
+        }
+
+        if (remoteState.customFormation) {
+          setCustomFormation(remoteState.customFormation);
+        }
+      } catch (error) {
+        console.warn("MongoDB API is not available. Using localStorage fallback.", error);
+      } finally {
+        hasLoadedRemoteData.current = true;
+      }
+    }
+
+    loadRemoteData();
+  }, []);
+
   useEffect(() => {
     const stateToSave: SavedSquadState = {
       players,
@@ -42,13 +71,35 @@ export default function App() {
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+
+    if (!hasLoadedRemoteData.current) return;
+
+    const timer = window.setTimeout(() => {
+      saveSquad(stateToSave).catch((error) => {
+        console.warn("Failed to save to MongoDB. localStorage fallback is still saved.", error);
+      });
+    }, 500);
+
+    return () => window.clearTimeout(timer);
   }, [players, formationName, customFormation]);
 
-  function resetSavedSquad() {
+  async function resetSavedSquad() {
+    const emptyState: SavedSquadState = {
+      players: [],
+      formationName: "4-4-2",
+      customFormation: formations.Custom,
+    };
+
     localStorage.removeItem(STORAGE_KEY);
-    setPlayers([]);
-    setFormationName("4-4-2");
-    setCustomFormation(formations.Custom);
+    setPlayers(emptyState.players);
+    setFormationName(emptyState.formationName);
+    setCustomFormation(emptyState.customFormation);
+
+    try {
+      await saveSquad(emptyState);
+    } catch (error) {
+      console.warn("Failed to clear MongoDB data. localStorage was cleared.", error);
+    }
   }
 
   function buildCustomFromCurrentFormation(nextFormationName: FormationName): Formation {
@@ -158,7 +209,7 @@ export default function App() {
             <div>
               <h1 className="text-3xl font-black md:text-5xl">Football Team Registration</h1>
               <p className="mt-2 max-w-2xl text-slate-300">
-                Your squad is saved in browser localStorage, so refreshing the page keeps your players and custom formation.
+                Your squad is saved to MongoDB through Prisma, with localStorage as a browser fallback.
               </p>
             </div>
 
@@ -168,7 +219,7 @@ export default function App() {
                 onClick={resetSavedSquad}
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-800 px-4 py-3 font-bold text-white ring-1 ring-white/15 transition hover:bg-slate-700"
               >
-                Clear Saved Data
+                Clear Data
               </button>
               <button
                 type="button"
